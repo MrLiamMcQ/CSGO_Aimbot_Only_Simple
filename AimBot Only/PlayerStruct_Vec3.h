@@ -1,6 +1,5 @@
 #pragma once
 #include <ostream>
-
 typedef union vec3 {
 	struct {
 		float x, y, z;
@@ -8,6 +7,8 @@ typedef union vec3 {
 	float data[3];
 	friend vec3 operator + (vec3 const & lhs, vec3 const & rhs);
 	friend vec3 operator - (vec3 const & lhs, vec3 const & rhs);
+	vec3& operator *= (float number);
+	vec3& operator -= (vec3 const & rhs);
 	friend std::ostream& operator<<(std::ostream& os, vec3 const& pos);
 };
 
@@ -93,4 +94,60 @@ struct PlayerClass {
 	char _0x3038[96];
 	vec3 m_aimPunchAngle;
 	int m_aimPunchAngleVel;
+	unsigned long m_szCustomName;
+	char _0x31B4[368];
+	unsigned long m_OriginalOwnerXuidLow;
+	unsigned long m_OriginalOwnerXuidHigh;
+	unsigned long m_nFallbackPaintKit;
+	unsigned long m_nFallbackSeed;
+	float m_flFallbackWear;
+	unsigned long m_nFallbackStatTrak;
+	char _0x31E4[16];
+	unsigned long m_thirdPersonViewAngles;
+	char _0x31E8[8];
+	int m_iFOV;
+	int m_iFOVStart;
+	char _0x3238[44];
+	float m_flNextPrimaryAttack;
+	char _0x3244[28];
+	int m_iState;
+	char _0x3285[8];
+	int m_iClip1;
+	char _0x3310[61];
+	bool m_bInReload;
+	char _0x3374[138];
+	float m_fAccuracyPenalty;
+	char _0x3388[96];
+	int m_iObserverMode;
+	char _0x33D0[16];
+	int m_hObserverTarget;
+	char _0x342C[68];
+	bool m_bStartedArming;
+	char _0x35B0[91];
+	unsigned long m_nTickBase;
+	char _0x3910[384];
+	unsigned long m_szLastPlaceName;
+	char _0x3918[860];
+	bool m_bIsScoped;
+	char _0x392C[7];
+	bool m_bIsDefusing;
+	char _0x3A78[19];
+	bool m_bGunGameImmunity;
+	char _0xA380[331];
+	float m_flLowerBodyYawTarget;
+	char _0xA3F0[26884];
+	int m_iShotsFired;
+	char _0xA3F4[108];
+	float m_flFlashMaxAlpha;
+	float m_flFlashDuration;
+	char _0xB334[20];
+	int m_iGlowIndex;
+	char _0xB340[3876];
+	bool m_bHasHelmet;
+	char _0xB344[11];
+	unsigned long m_ArmorValue;
+	unsigned long m_angEyeAnglesX;
+	unsigned long m_angEyeAnglesY;
+	char _0xB3AC[4];
+	bool m_bHasDefuser;
 };

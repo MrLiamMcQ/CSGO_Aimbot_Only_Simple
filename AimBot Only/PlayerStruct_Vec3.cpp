@@ -11,3 +11,17 @@ std::ostream& operator<<(std::ostream& os, vec3 const& pos) {
 	os << "xyz: " << pos.x << "," << pos.y << "," << pos.z;
 	return os;
 }
+vec3& vec3::operator *= (float number) {
+	this->x *= number;
+	this->y *= number;
+	this->z *= number;
+	return *this;
+}
+
+vec3 & vec3::operator-=(vec3 const & rhs)
+{
+	this->x -= rhs.x;
+	this->y -= rhs.y;
+	this->z -= rhs.z;
+	return *this;
+}
