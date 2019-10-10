@@ -1,8 +1,10 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
-#include "PlayerStruct_Vec3.h"
+#include "utils.h"
 
 #define M_PI 3.1415927f
+#define MaxPlayers 20
+CONST DWORD dwClientState_ViewAngles = 0x4D88;
 
 void clampAngle(vec3& angle) {
 	if (angle.x > 89.0f) angle.x = 89.f;
@@ -17,22 +19,22 @@ void clampAngle(vec3& angle) {
 void normalise(vec3& angle) {
 	if (angle.x > 89.0f) angle.x -= 180.0f;
 	if (angle.x < -89.0f) angle.x += 180.0f;
-
-	while (angle.y > 180) angle.y -= 360.f;
-	while (angle.y < -180) angle.y += 360.f;
+	angle.y = std::remainderf(angle.y, 360.0f);
+	//while (angle.y > 180) angle.y -= 360.f;
+	//while (angle.y < -180) angle.y += 360.f;
 }
 
-vec3 calcAngle(const vec3& vecSource, const vec3& vecDestination){
-	vec3 qAngles;
-	vec3 delta = vecSource - vecDestination;
-	float hyp = sqrtf(delta.data[0] * delta.data[0] + delta.data[1] * delta.data[1]);
-	qAngles.data[0] = (float)(atan(delta.data[2] / hyp) * (180.0f / M_PI));
-	qAngles.data[1] = (float)(atan(delta.data[1] / delta.data[0]) * (180.0f / M_PI));
-	qAngles.data[2] = 0.f;
-	if (delta.data[0] >= 0.f)
-		qAngles.data[1] += 180.f;
+vec3 calcAngle(const vec3& source, const vec3& destination){
+	vec3 retAngle;
+	vec3 delta = source - destination;
+	float hyp = sqrtf(delta.x * delta.x + delta.y * delta.y);
+	retAngle.x = (float)(atan(delta.z / hyp) * (180.0f / M_PI));
+	retAngle.y = (float)(atan(delta.y / delta.x) * (180.0f / M_PI));
+	retAngle.z = 0.f;
+	if (delta.x >= 0.f)
+		retAngle.y += 180.f;
 
-	return qAngles;
+	return retAngle;
 }
 
 float getDistance(vec3 point1,vec3 point2) {
@@ -50,54 +52,18 @@ vec3 getBone(const DWORD boneaddy, const int id) {
 	return bone;
 }
 
-#include <windows.h>
-#include <Psapi.h>
-#include <algorithm>
-#include <string>
-using namespace std::string_literals;
-DWORD findPatternAA(const char* moduleName, std::string pattern) {
-	DWORD startAddress = (DWORD)GetModuleHandleA(moduleName);
-	MODULEINFO info;
-	GetModuleInformation(GetCurrentProcess(), (HMODULE)startAddress, &info, sizeof(MODULEINFO));
-	DWORD endAddress = startAddress + info.SizeOfImage;
-
-	int foundAmount = 0;
-	int amountQuestionMarks = std::count(pattern.begin(), pattern.end(), '?');
-
-	for (DWORD i = startAddress; i < endAddress - pattern.length(); i++) {
-		for (DWORD j = 0; j < pattern.length(); j++) {
-			if (pattern[j] == '?')
-				continue;
-			if ((BYTE)pattern[j] == *(BYTE*)(i + j))
-				foundAmount++;
-			if (foundAmount >= pattern.length() - amountQuestionMarks) {
-				return i;
-			}
-		}
-		foundAmount = 0;
-	}
-	return 0;
-}
-
-CONST DWORD dwClientState_ViewAngles = 0x4D88;
-
-#define MaxPlayers 20
-
 [[noreturn]] void main() {
-	using namespace std::string_literals;
 
-	DWORD dwEntityList = 0x4D0C004;
+	using namespace std::string_literals; // to stop null termination of strings
 
-	DWORD clientDLL = (DWORD)GetModuleHandle(L"client_panorama.dll");
-
-	DWORD clientState = **(DWORD**)(findPatternAA("engine.dll", "\xA1\?\?\?\?\x33\xD2\x6A\x00\x6A\x00\x33\xC9\x89\xB0"s) + 1);
-	DWORD localPlayerAddress = ((*(DWORD*)(findPatternAA("client_panorama.dll", "\x8D\x34\x85\?\?\?\?\x89\x15\?\?\?\?\x8B\x41\x08\x8B\x48\x04\x83\xF9\xFF"s) + 3)) + 4);
+	DWORD entityListAddress = *(DWORD*)(findPattern("client_panorama.dll", "\xBB\?\?\?\?\x83\xFF\x01\x0F\x8C\?\?\?\?\x3B\xF8"s) + 1);
+	DWORD clientState = **(DWORD**)(findPattern("engine.dll", "\xA1\?\?\?\?\x33\xD2\x6A\x00\x6A\x00\x33\xC9\x89\xB0"s) + 1);
+	DWORD localPlayerAddress = ((*(DWORD*)(findPattern("client_panorama.dll", "\x8D\x34\x85\?\?\?\?\x89\x15\?\?\?\?\x8B\x41\x08\x8B\x48\x04\x83\xF9\xFF"s) + 3)) + 4);
 
 	vec3* myViewAngle = (vec3*)(clientState + dwClientState_ViewAngles);
+	PlayerClass* localPlayer = *(PlayerClass**)localPlayerAddress;
 	
 	while (1) {
-
-		PlayerClass localPlayer = **(PlayerClass**)localPlayerAddress;
 
 		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 
@@ -107,23 +73,21 @@ CONST DWORD dwClientState_ViewAngles = 0x4D88;
 			bool firstTime = 1;
 
 			for (int i = 1; i < MaxPlayers; i++) {
-				PlayerClass* entity = *(PlayerClass**)(clientDLL + dwEntityList + (i) * 0x10);
+				PlayerClass* entity = *(PlayerClass**)(entityListAddress + (i) * 0x10);
 
 				if (!entity) continue;
-				if (entity->m_iTeamNum == localPlayer.m_iTeamNum) continue;
+				if (entity->m_iTeamNum == localPlayer->m_iTeamNum) continue;
 				if (*(char*)((DWORD)entity + 0xED) == 1) { continue; };// dormant cheak
 				if (entity->m_iHealth > 100) { continue; };
 				if (entity->m_lifeState != 0) { continue; };
 				if (entity->m_iHealth <= 0) { continue; };
 
-				vec3 localHeadPos = localPlayer.m_vecViewOffset + localPlayer.m_vecOrigin;
+				vec3 localHeadPos = localPlayer->m_vecViewOffset + localPlayer->m_vecOrigin;
 				vec3 enHeadPos = getBone(entity->m_dwBoneMatrix, 8);
-
-				//std::cout << "myHead: " << localHeadPos << "  en: " << enHeadPos << std::endl;
 
 				vec3 AimAngle = calcAngle(localHeadPos, enHeadPos);
 
-				float distance = getDistance(localPlayer.m_vec3ViewAngle,AimAngle);
+				float distance = getDistance(localPlayer->m_vec3ViewAngle,AimAngle);
 
 				if (distance < closestTarget.first || firstTime) {
 					closestTarget.first = distance;
@@ -135,7 +99,7 @@ CONST DWORD dwClientState_ViewAngles = 0x4D88;
 			if (closestTarget.first.has_value()) {
 				normalise(closestTarget.second);
 
-				vec3 AimPunch = localPlayer.m_aimPunchAngle;
+				vec3 AimPunch = localPlayer->m_aimPunchAngle;
 				AimPunch *= 2.f;
 
 				closestTarget.second -= AimPunch;

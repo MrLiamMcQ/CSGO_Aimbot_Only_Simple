@@ -159,11 +159,11 @@
   <ItemGroup>
     <ClCompile Include="dllmain_Aimbot.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="PlayerStruct_Vec3.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="PlayerStruct_Vec3.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

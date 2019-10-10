@@ -1,4 +1,5 @@
 #pragma once
+
 #include <ostream>
 typedef union vec3 {
 	struct {
@@ -12,9 +13,13 @@ typedef union vec3 {
 	friend std::ostream& operator<<(std::ostream& os, vec3 const& pos);
 };
 
-// from https://github.com/MrLiamMcQ/csgoPlayerStructMakerForHacks 
-// from https://botliam.xyz/csgoPlayerStruct.php
-// 1 assembly code faster than the most optimised traditional method
+#include <windows.h>
+#include <Psapi.h>
+#include <algorithm>
+#include <string>
+DWORD findPattern(const char* moduleName, std::string pattern);
+
+// from https://github.com/MrLiamMcQ/csgoPlayerStructMakerForHacks		https://botliam.xyz/csgoPlayerStruct.php
 struct PlayerClass {
 	unsigned long cs_gamerules_data;
 	char _0x70[28];
