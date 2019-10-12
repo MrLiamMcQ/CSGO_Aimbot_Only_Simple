@@ -2,17 +2,13 @@
 #include "pch.h"
 #include "utils.h"
 
-#define M_PI 3.1415927f
-#define MaxPlayers 20
-CONST DWORD dwClientState_ViewAngles = 0x4D88;
+constexpr float M_PI = 3.1415927f;
+constexpr DWORD MaxPlayers = 20;
+constexpr DWORD dwClientState_ViewAngles = 0x4D88;
 
 void clampAngle(vec3& angle) {
-	if (angle.x > 89.0f) angle.x = 89.f;
-	if (angle.x < -89.0f) angle.x = -89.f;
-
-	if (angle.y > 180.f) angle.y = 180.f; 
-	if (angle.y < -180.f) angle.y = -180.f; 
-
+	std::clamp(angle.x,-89.f,89.f);
+	std::clamp(angle.y,-180.f,180.f);
 	angle.z = 0.0f;
 }
 
@@ -20,8 +16,6 @@ void normalise(vec3& angle) {
 	if (angle.x > 89.0f) angle.x -= 180.0f;
 	if (angle.x < -89.0f) angle.x += 180.0f;
 	angle.y = std::remainderf(angle.y, 360.0f);
-	//while (angle.y > 180) angle.y -= 360.f;
-	//while (angle.y < -180) angle.y += 360.f;
 }
 
 vec3 calcAngle(const vec3& source, const vec3& destination){
@@ -37,7 +31,7 @@ vec3 calcAngle(const vec3& source, const vec3& destination){
 	return retAngle;
 }
 
-float getDistance(vec3 point1,vec3 point2) {
+float getDistance(const vec3& point1,const vec3& point2) {
 	vec3 delta = point1 - point2;
 	normalise(delta);
 	float temp = (delta.x*delta.x) + (delta.y*delta.y) + (delta.z*delta.z);
@@ -54,7 +48,7 @@ vec3 getBone(const DWORD boneaddy, const int id) {
 
 [[noreturn]] void main() {
 
-	using namespace std::string_literals; // to stop null termination of strings
+	using namespace std::string_literals; // to stop null termination
 
 	DWORD entityListAddress = *(DWORD*)(findPattern("client_panorama.dll", "\xBB\?\?\?\?\x83\xFF\x01\x0F\x8C\?\?\?\?\x3B\xF8"s) + 1);
 	DWORD clientState = **(DWORD**)(findPattern("engine.dll", "\xA1\?\?\?\?\x33\xD2\x6A\x00\x6A\x00\x33\xC9\x89\xB0"s) + 1);
@@ -70,17 +64,15 @@ vec3 getBone(const DWORD boneaddy, const int id) {
 		if (GetAsyncKeyState(VK_LBUTTON)) {
 
 			std::pair<std::optional<float>, vec3> closestTarget{ std::nullopt,{0,0,0} };
-			bool firstTime = 1;
 
 			for (int i = 1; i < MaxPlayers; i++) {
 				PlayerClass* entity = *(PlayerClass**)(entityListAddress + (i) * 0x10);
 
 				if (!entity) continue;
 				if (entity->m_iTeamNum == localPlayer->m_iTeamNum) continue;
-				if (*(char*)((DWORD)entity + 0xED) == 1) { continue; };// dormant cheak
-				if (entity->m_iHealth > 100) { continue; };
-				if (entity->m_lifeState != 0) { continue; };
-				if (entity->m_iHealth <= 0) { continue; };
+				if (*(char*)((DWORD)entity + 0xED) == 1)  continue; // dormant cheak
+				if (entity->m_lifeState != 0) continue; 
+				if (entity->m_iHealth <= 0) continue;
 
 				vec3 localHeadPos = localPlayer->m_vecViewOffset + localPlayer->m_vecOrigin;
 				vec3 enHeadPos = getBone(entity->m_dwBoneMatrix, 8);
@@ -89,10 +81,9 @@ vec3 getBone(const DWORD boneaddy, const int id) {
 
 				float distance = getDistance(localPlayer->m_vec3ViewAngle,AimAngle);
 
-				if (distance < closestTarget.first || firstTime) {
+				if (distance < closestTarget.first || !closestTarget.first.has_value()) {
 					closestTarget.first = distance;
 					closestTarget.second = AimAngle;
-					firstTime = 0;
 				}
 			}
 
@@ -111,13 +102,14 @@ vec3 getBone(const DWORD boneaddy, const int id) {
 			}
 
 		}
+
+		if (GetAsyncKeyState(VK_F1))
+			break;
 	}
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call,LPVOID lpReserved){
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
+    if(ul_reason_for_call == DLL_PROCESS_ATTACH){
 		AllocConsole();
 		freopen("conin$", "r", stdin);
 		freopen("conout$", "w", stdout);
